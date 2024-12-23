@@ -7,18 +7,44 @@ void compute_hash (const char *data, unsigned char hash[]) {
 	SHA256((unsigned char *)data, strlen(data), hash);
 }
 
+const char* pad_to_power_of_two(const char *data) {
+	int length = strlen(data); 
+	if (length == 0)
+		return NULL;
+	
+	if ((length & (length - 1)) == 0)
+		return data;
+	
+	unsigned int power = 1;
+	while (power < length) {
+		power <<= 1;
+	}	
+	char *padded_data = (char *) calloc (power+1, sizeof(char));
+	for (int i=0; i<power; i++) {
+		padded_data[i] = (i < length) ? data[i] : ' ';
+	}
+	padded_data[power] = '\0';
+	return padded_data;
+}
+
 /*
 	Compute Merkle Tree hash. 
 	Steps:
-		1. Compute the number of blocks required
-		2. Hash data of each block
-		3. Build merkle tree and return hash at the root
+		1. Pad the input to the nearest power of two
+		2. Compute the number of blocks required
+		3. Hash data of each block
+		4. Build merkle tree and return hash at the root
 */
 unsigned char* merkle_hash (const char *data, int block_size) {
+	// Pad the input to the nearest power of two
+	const char *padded_data = pad_to_power_of_two(data);
+	if (!padded_data)
+		return NULL;
+
 	// Compute the number of blocks required
-	int length_of_data = strlen(data);
+	int length_of_data = strlen(padded_data);
 	int no_of_blocks = (length_of_data + block_size - 1)/block_size; // ceiling division
-	
+		
 	unsigned char **hashes = (unsigned char **) calloc (no_of_blocks, sizeof(unsigned char *));
 
 	// Compute the hash for each leaf node
@@ -26,7 +52,7 @@ unsigned char* merkle_hash (const char *data, int block_size) {
 	for (int i=0; i<no_of_blocks; i++) {
 		hashes[i] = (unsigned char *) calloc (SHA256_DIGEST_LENGTH, sizeof(unsigned char));
 		unsigned char block_data[block_size+1];
-		strncpy (block_data, data+(i*block_size), block_size);
+		strncpy (block_data, padded_data + (i*block_size), block_size);
 		block_data[block_size] = '\0';
 		compute_hash(block_data, hashes[i]);
 	}
@@ -77,7 +103,8 @@ int log_base_2 (int num) {
 }
 
 opening_t* compute_opening(const char *data, int block_size, int location) {
-	int length_of_data = strlen(data);
+	const char *padded_data = pad_to_power_of_two (data);
+	int length_of_data = strlen(padded_data);
 	int no_of_blocks = (length_of_data + block_size - 1)/block_size;
 	if (location > no_of_blocks) {
 		return NULL;
@@ -87,7 +114,7 @@ opening_t* compute_opening(const char *data, int block_size, int location) {
 	opening->location = location;
 	opening->length_of_op = log_base_2(no_of_blocks);
 	opening->data_at_location = (unsigned char *) calloc (block_size + 1, sizeof(unsigned char));
-	strncpy(opening->data_at_location, data + (location * block_size), block_size);
+	strncpy(opening->data_at_location, padded_data + (location * block_size), block_size);
 	opening->data_at_location[block_size] = '\0';
 	opening->op = (unsigned char **) calloc (opening->length_of_op, sizeof (unsigned char *));
 
@@ -99,7 +126,7 @@ opening_t* compute_opening(const char *data, int block_size, int location) {
 	for (int i=0; i<no_of_blocks; i++) {
 		hashes[i] = (unsigned char *) calloc (SHA256_DIGEST_LENGTH, sizeof(unsigned char));
 		unsigned char block_data[block_size+1];
-		strncpy (block_data, data+(i*block_size), block_size);
+		strncpy (block_data, padded_data + (i*block_size), block_size);
 		block_data[block_size] = '\0';
 		compute_hash(block_data, hashes[i]);
 	}
