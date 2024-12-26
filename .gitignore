@@ -1,4 +1,5 @@
-merkle
+build/*
+bin/*
 *.swp
 *.swo
 out*
