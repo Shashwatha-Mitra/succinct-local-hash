@@ -3,3 +3,5 @@ bin/*
 *.swp
 *.swo
 out*
+compile_commands.json
+*cache*

@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-void main() {
+int main() {
 	const char *data = "Hello";
 	int length_of_data = strlen(data);
 	unsigned char *hash;
@@ -35,4 +35,5 @@ void main() {
 		}
 		printf ("----------------------------------------------------------------------------\n");
 	}
+  return 0;
 }
